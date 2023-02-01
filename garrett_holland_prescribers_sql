@@ -1,0 +1,16 @@
+-- 1a. Which prescriber had the highest total number of claims (totaled over all drugs)? Report the npi and the total number of claims.
+SELECT prescriber.npi, SUM(prescription.total_claim_count) AS total_claims
+FROM prescriber
+JOIN prescription ON prescriber.npi = prescription.npi
+GROUP BY prescriber.npi
+ORDER BY total_claims DESC
+LIMIT 1;
+
+-- 1b. Repeat the above, but this time report the nppes_provider_first_name, nppes_provider_last_org_name, specialty_description, and the total number of claims.
+SELECT prescriber.nppes_provider_first_name, prescriber.nppes_provider_last_org_name, prescriber.specialty_description, SUM(prescription.total_claim_count) AS total_claims
+FROM prescriber
+JOIN prescription ON prescriber.npi = prescription.npi
+GROUP BY prescriber.npi, prescriber.nppes_provider_first_name, prescriber.nppes_provider_last_org_name, prescriber.specialty_description
+ORDER BY total_claims DESC
+LIMIT 1;
+
