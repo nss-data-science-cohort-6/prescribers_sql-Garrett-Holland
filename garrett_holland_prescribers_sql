@@ -14,3 +14,88 @@ GROUP BY prescriber.npi, prescriber.nppes_provider_first_name, prescriber.nppes_
 ORDER BY total_claims DESC
 LIMIT 1;
 
+-- 2a. Which specialty had the most total number of claims (totaled over all drugs)?
+SELECT specialty_description, SUM(prescription.total_claim_count) AS total_claims
+FROM prescriber
+JOIN prescription ON prescriber.npi = prescription.npi
+GROUP BY specialty_description
+ORDER BY total_claims DESC
+LIMIT 1;
+
+-- 2b. Which specialty had the most total number of claims for opioids?
+SELECT specialty_description, SUM(prescription.total_claim_count) AS total_claims
+FROM prescriber
+JOIN prescription ON prescriber.npi = prescription.npi
+JOIN drug ON prescription.drug_name = drug.drug_name
+WHERE drug.opioid_drug_flag = 'Y'
+GROUP BY specialty_description
+ORDER BY total_claims DESC
+LIMIT 1;
+
+-- 2c. Challenge Question: Are there any specialties that appear in the prescriber table that have no associated prescriptions in the prescription table?
+SELECT specialty_description
+FROM prescriber
+LEFT JOIN prescription ON prescriber.npi = prescription.npi
+WHERE prescription.npi IS NULL
+GROUP BY specialty_description;
+
+-- 2d. Difficult Bonus: Do not attempt until you have solved all other problems! For each specialty, report the percentage of total claims by that specialty which are for opioids. Which specialties have a high percentage of opioids?
+WITH specialty_claims AS (
+  SELECT specialty_description, SUM(prescription.total_claim_count) AS total_claims
+  FROM prescriber
+  JOIN prescription ON prescriber.npi = prescription.npi
+  GROUP BY specialty_description
+), opioid_claims AS (
+  SELECT specialty_description, SUM(prescription.total_claim_count) AS opioid_claims
+  FROM prescriber
+  JOIN prescription ON prescriber.npi = prescription.npi
+  JOIN drug ON prescription.drug_name = drug.drug_name
+  WHERE drug.opioid_drug_flag = 'Y'
+  GROUP BY specialty_description
+)
+SELECT specialty_claims.specialty_description, (opioid_claims.opioid_claims / specialty_claims.total_claims) * 100 AS opioid_percentage
+FROM specialty_claims
+JOIN opioid_claims ON specialty_claims.specialty_description = opioid_claims.specialty_description
+ORDER BY opioid_percentage DESC;
+
+-- 3a. Which drug (generic_name) had the highest total drug cost?
+SELECT drug.generic_name, SUM(prescription.total_drug_cost) AS total_cost
+FROM drug
+JOIN prescription ON drug.drug_name = prescription.drug_name
+GROUP BY drug.generic_name
+ORDER BY total_cost DESC
+LIMIT 1;
+
+-- 3b. Which drug (generic_name) has the hightest total cost per day? Bonus: Round your cost per day column to 2 decimal places. Google ROUND to see how this works.
+SELECT drug.generic_name, ROUND(SUM(prescription.total_drug_cost) / AVG(prescription.total_day_supply), 2) AS cost_per_day
+FROM drug
+JOIN prescription ON drug.drug_name = prescription.drug_name
+GROUP BY drug.generic_name
+ORDER BY cost_per_day DESC
+LIMIT 1;
+
+-- 4a. For each drug in the drug table, return the drug name and then a column named 'drug_type' which says 'opioid' for drugs which have opioid_drug_flag = 'Y', says 'antibiotic' for those drugs which have antibiotic_drug_flag = 'Y', and says 'neither' for all other drugs.
+SELECT drug.drug_name, 
+  CASE 
+    WHEN drug.opioid_drug_flag = 'Y' THEN 'opioid'
+    WHEN drug.antibiotic_drug_flag = 'Y' THEN 'antibiotic'
+    ELSE 'neither'
+  END AS drug_type
+FROM drug;
+
+-- 4b. Building off of the query you wrote for part a, determine whether more was spent (total_drug_cost) on opioids or on antibiotics. Hint: Format the total costs as MONEY for easier comparision.
+WITH drug_types AS (
+  SELECT drug.drug_name, 
+    CASE 
+      WHEN drug.opioid_drug_flag = 'Y' THEN 'opioid'
+      WHEN drug.antibiotic_drug_flag = 'Y' THEN 'antibiotic'
+      ELSE 'neither'
+    END AS drug_type
+  FROM drug
+)
+SELECT drug_type, TO_CHAR(SUM(prescription.total_drug_cost), '$999,999,999') AS total_cost
+FROM drug_types
+JOIN prescription ON drug_types.drug_name = prescription.drug_name
+GROUP BY drug_type
+ORDER BY total_cost DESC;
+
