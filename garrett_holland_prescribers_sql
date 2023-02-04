@@ -59,8 +59,9 @@ JOIN opioid_claims ON specialty_claims.specialty_description = opioid_claims.spe
 ORDER BY opioid_percentage DESC;
 
 -- 3a. Which drug (generic_name) had the highest total drug cost?
-SELECT generic_name,
-		SUM(total_drug_cost):: money AS total_drug_cost
+SELECT 
+	generic_name,
+	SUM(total_drug_cost):: money AS total_drug_cost
 FROM prescription
 INNER JOIN drug
 USING(drug_name)
