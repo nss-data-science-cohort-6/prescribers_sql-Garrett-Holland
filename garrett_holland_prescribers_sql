@@ -59,20 +59,25 @@ JOIN opioid_claims ON specialty_claims.specialty_description = opioid_claims.spe
 ORDER BY opioid_percentage DESC;
 
 -- 3a. Which drug (generic_name) had the highest total drug cost?
-SELECT drug.generic_name, SUM(prescription.total_drug_cost) AS total_cost
-FROM drug
-JOIN prescription ON drug.drug_name = prescription.drug_name
-GROUP BY drug.generic_name
-ORDER BY total_cost DESC
-LIMIT 1;
+SELECT generic_name,
+		SUM(total_drug_cost):: money AS total_drug_cost
+FROM prescription
+INNER JOIN drug
+USING(drug_name)
+GROUP BY generic_name, total_drug_cost
+ORDER BY total_drug_cost Desc;
 
 -- 3b. Which drug (generic_name) has the hightest total cost per day? Bonus: Round your cost per day column to 2 decimal places. Google ROUND to see how this works.
-SELECT drug.generic_name, ROUND(SUM(prescription.total_drug_cost) / AVG(prescription.total_day_supply), 2) AS cost_per_day
-FROM drug
-JOIN prescription ON drug.drug_name = prescription.drug_name
-GROUP BY drug.generic_name
-ORDER BY cost_per_day DESC
-LIMIT 1;
+SELECT 
+	generic_name, 
+	SUM(total_drug_cost)::money AS total_cost,
+	SUM(total_day_supply) AS total_supply,
+	SUM(total_drug_cost)::money / SUM(total_day_supply) AS cost_per_day
+FROM prescription 
+INNER JOIN drug 
+USING(drug_name) 
+GROUP BY generic_name 
+ORDER BY cost_per_day DESC;
 
 -- 4a. For each drug in the drug table, return the drug name and then a column named 'drug_type' which says 'opioid' for drugs which have opioid_drug_flag = 'Y', says 'antibiotic' for those drugs which have antibiotic_drug_flag = 'Y', and says 'neither' for all other drugs.
 SELECT drug.drug_name, 
